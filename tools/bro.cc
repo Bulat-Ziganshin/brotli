@@ -128,7 +128,8 @@ error:
 
 static FILE* OpenInputFile(const char* input_path) {
   if (input_path == 0) {
-    return fdopen(STDIN_FILENO, "rb");
+    setmode(STDIN_FILENO,O_BINARY);
+    return stdin;
   }
   FILE* f = fopen(input_path, "rb");
   if (f == 0) {
@@ -140,7 +141,8 @@ static FILE* OpenInputFile(const char* input_path) {
 
 static FILE *OpenOutputFile(const char *output_path, const int force) {
   if (output_path == 0) {
-    return fdopen(STDOUT_FILENO, "wb");
+    setmode(STDOUT_FILENO,O_BINARY);
+    return stdout;
   }
   if (!force) {
     struct stat statbuf;
@@ -149,13 +151,12 @@ static FILE *OpenOutputFile(const char *output_path, const int force) {
       exit(1);
     }
   }
-  int fd = open(output_path, O_CREAT | O_WRONLY | O_TRUNC,
-                S_IRUSR | S_IWUSR);
-  if (fd < 0) {
-    perror("open");
+  FILE* f = fopen(output_path, "wb");
+  if (f == 0) {
+    perror("fopen");
     exit(1);
   }
-  return fdopen(fd, "wb");
+  return f;
 }
 
 int64_t FileSize(char *path) {
