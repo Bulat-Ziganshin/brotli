@@ -47,7 +47,9 @@ static void ParseArgv(int argc, char **argv,
                       int *quality,
                       int *decompress,
                       int *repeat,
-                      int *verbose) {
+                      int *verbose,
+                      int *lgwin,
+                      int *mode) {
   *force = 0;
   *input_path = 0;
   *output_path = 0;
@@ -112,6 +114,20 @@ static void ParseArgv(int argc, char **argv,
         }
         ++k;
         continue;
+      } else if (!strcmp("--window", argv[k]) ||
+                 !strcmp("-w", argv[k])) {
+        if (!ParseQuality(argv[k + 1], lgwin)) {
+          goto error;
+        }
+        ++k;
+        continue;
+      } else if (!strcmp("--mode", argv[k]) ||
+                 !strcmp("-m", argv[k])) {
+        if (!ParseQuality(argv[k + 1], mode)) {
+          goto error;
+        }
+        ++k;
+        continue;
       }
     }
     goto error;
@@ -119,10 +135,23 @@ static void ParseArgv(int argc, char **argv,
   return;
 error:
   fprintf(stderr,
-          "Usage: %s [--force] [--quality n] [--decompress]"
-          " [--input filename] [--output filename] [--repeat iters]"
-          " [--verbose]\n",
-          argv[0]);
+          "Usage: bro [--quality n] [--window n] [--mode n]"
+          " [--decompress] [--force] [--input filename] [--output filename]"
+          " [--repeat iters] [--verbose]\n"
+
+          "  --quality: controls the compression-speed vs compression-density "
+          "tradeoff. The higher the quality, the slower the "
+          "compression. Range is 0 to 11. Defaults to 11.\n"
+
+          "  --window: base 2 logarithm of the sliding window size. Range is "
+          "16 to 24. Defaults to 22.\n"
+
+          "  --mode: the compression mode can be 0 for generic input, "
+          "1 for UTF-8 encoded text, or 2 for WOFF 2.0 font data. "
+          "Defaults to 0.\n"
+
+          "Usage example: bro -q 9 -w 24 -v -f -i INFILE -o OUTFILE\n"
+          );
   exit(1);
 }
 
@@ -178,8 +207,10 @@ int main(int argc, char** argv) {
   int decompress = 0;
   int repeat = 1;
   int verbose = 0;
+  int lgwin = 22;
+  int mode = 0;
   ParseArgv(argc, argv, &input_path, &output_path, &force,
-            &quality, &decompress, &repeat, &verbose);
+            &quality, &decompress, &repeat, &verbose, &lgwin, &mode);
   const clock_t clock_start = clock();
   for (int i = 0; i < repeat; ++i) {
     FILE* fin = OpenInputFile(input_path);
@@ -194,6 +225,8 @@ int main(int argc, char** argv) {
     } else {
       brotli::BrotliParams params;
       params.quality = quality;
+      params.lgwin = lgwin;
+      params.mode = static_cast<brotli::BrotliParams::Mode> (mode);
       brotli::BrotliFileIn in(fin, 1 << 16);
       brotli::BrotliFileOut out(fout);
       if (!BrotliCompress(params, &in, &out)) {
@@ -228,7 +261,7 @@ int main(int argc, char** argv) {
     } else {
       printf("%.0lf -> %.0lf: %.3lf%%", insize, outsize, outsize*100.0/insize);
     }
-    printf(",  %.3lf sec,  %.3lf MiB/s\n", duration, uncompressed_bytes_in_MB / duration);
+    printf("   %.3lf sec   %.3lf MiB/s\n", duration, uncompressed_bytes_in_MB / duration);
   }
   return 0;
 }
