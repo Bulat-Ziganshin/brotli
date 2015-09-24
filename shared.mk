@@ -1,6 +1,6 @@
 OS := $(shell uname)
 
-CC ?= gcc
+CC = gcc
 CXX ?= g++
 
 EMCC = emcc

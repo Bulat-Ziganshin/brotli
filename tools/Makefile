@@ -13,7 +13,7 @@ EXE_OBJS=$(patsubst %, %.o, $(EXECUTABLES))
 all : $(EXECUTABLES)
 
 $(EXECUTABLES) : $(EXE_OBJS) deps
-	$(CXX) $(LFLAGS) $(ENCOBJ) $(DECOBJ) $@.o -o $@
+	$(CXX) $(LFLAGS) $(ENCOBJ) $(DECOBJ) $@.o -o $@ -static -s  -Xlinker --large-address-aware
 
 deps :
 	$(MAKE) -C $(BROTLI)/dec
