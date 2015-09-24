@@ -218,15 +218,17 @@ int main(int argc, char** argv) {
     if (duration < 1e-9) {
       duration = 1e-9;
     }
-    int64_t uncompressed_bytes = repeat *
-        FileSize(decompress ? output_path : input_path);
+    double insize  = static_cast<double> (FileSize(input_path));
+    double outsize = static_cast<double> (FileSize(output_path));
+    double uncompressed_bytes = repeat * (decompress ? outsize : insize);
+
     double uncompressed_bytes_in_MB = uncompressed_bytes / (1024.0 * 1024.0);
     if (decompress) {
-      printf("Brotli decompression speed: ");
+      printf("%.0lf -> %.0lf: %.3lf%%", outsize, insize, insize*100.0/outsize);
     } else {
-      printf("Brotli compression speed: ");
+      printf("%.0lf -> %.0lf: %.3lf%%", insize, outsize, outsize*100.0/insize);
     }
-    printf("%g MB/s\n", uncompressed_bytes_in_MB / duration);
+    printf(",  %.3lf sec,  %.3lf MiB/s\n", duration, uncompressed_bytes_in_MB / duration);
   }
   return 0;
 }
